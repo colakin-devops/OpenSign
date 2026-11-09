@@ -45,6 +45,35 @@ RESPONSE=$(curl -s -X POST "${SERVER_URL}/functions/addadmin" \
     }
   }")
 
+# If unauthorized, try fallback App IDs (in case container hasn't restarted yet)
+if echo "$RESPONSE" | grep -q "unauthorized"; then
+  for ALT_ID in "dex-signature" "opensign"; do
+    if [ "$ALT_ID" != "$APP_ID" ]; then
+      echo "⚠️ App ID '$APP_ID' unauthorized. Retrying with '$ALT_ID'..."
+      ALT_RES=$(curl -s -X POST "${SERVER_URL}/functions/addadmin" \
+        -H "Content-Type: application/json" \
+        -H "X-Parse-Application-Id: ${ALT_ID}" \
+        -H "X-Parse-Master-Key: ${MASTER_KEY}" \
+        -d "{
+          \"userDetails\": {
+            \"name\": \"${ADMIN_NAME}\",
+            \"email\": \"${ADMIN_EMAIL}\",
+            \"password\": \"${ADMIN_PASSWORD}\",
+            \"company\": \"${COMPANY}\",
+            \"jobTitle\": \"Administrator\",
+            \"role\": \"contracts_Admin\",
+            \"timezone\": \"Asia/Kolkata\"
+          }
+        }")
+      if ! echo "$ALT_RES" | grep -q "unauthorized"; then
+        RESPONSE="$ALT_RES"
+        APP_ID="$ALT_ID"
+        break
+      fi
+    fi
+  done
+fi
+
 echo "Response: $RESPONSE"
 
 if echo "$RESPONSE" | grep -q "User sign up"; then
