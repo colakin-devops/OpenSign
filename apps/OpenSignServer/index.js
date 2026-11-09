@@ -20,6 +20,7 @@ import { SSOAuth } from './auth/authadapter.js';
 import runDbMigrations from './migrationdb/index.js';
 import { validateSignedLocalUrl } from './cloud/parsefunction/getSignedUrl.js';
 import SupabaseFilesAdapter from './utils/SupabaseFilesAdapter.js';
+import bootstrapAdmin from './utils/bootstrapAdmin.js';
 let fsAdapter;
 
 if (useLocal !== 'true') {
@@ -274,8 +275,10 @@ if (!process.env.TESTING) {
     // otherwise the platform's readiness probe never succeeds and the deploy is killed.
     console.error('Database migration failed:', error);
   }
-  httpServer.listen(port, '0.0.0.0', function () {
+  httpServer.listen(port, '0.0.0.0', async function () {
     console.log('opensign-server running on port ' + port + '.');
+    // Auto-seed admin user if not present
+    await bootstrapAdmin();
     const isWindows = process.platform === 'win32';
     // console.log('isWindows', isWindows);
     const migrate = isWindows
