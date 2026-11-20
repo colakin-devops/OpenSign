@@ -23,14 +23,18 @@ export default class SupabaseFilesAdapter {
     };
   }
 
+  _cleanPath(filename) {
+    if (!filename) return '';
+    const clean = filename.startsWith('/') ? filename.slice(1) : filename;
+    return clean.split('/').map(encodeURIComponent).join('/');
+  }
+
   /**
    * Upload file to Supabase Storage
    */
   async createFile(filename, data, contentType = 'application/pdf') {
-    const cleanFilename = filename.startsWith('/') ? filename.slice(1) : filename;
-    const url = `${this.supabaseUrl}/storage/v1/object/${this.bucket}/${encodeURIComponent(
-      cleanFilename
-    )}`;
+    const filePath = this._cleanPath(filename);
+    const url = `${this.supabaseUrl}/storage/v1/object/${this.bucket}/${filePath}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -74,10 +78,8 @@ export default class SupabaseFilesAdapter {
    * Download file data as Buffer
    */
   async getFileData(filename) {
-    const cleanFilename = filename.startsWith('/') ? filename.slice(1) : filename;
-    const url = `${this.supabaseUrl}/storage/v1/object/authenticated/${this.bucket}/${encodeURIComponent(
-      cleanFilename
-    )}`;
+    const filePath = this._cleanPath(filename);
+    const url = `${this.supabaseUrl}/storage/v1/object/authenticated/${this.bucket}/${filePath}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -99,18 +101,16 @@ export default class SupabaseFilesAdapter {
    * Return public file URL
    */
   getFileLocation(config, filename) {
-    const cleanFilename = filename.startsWith('/') ? filename.slice(1) : filename;
-    return `${this.supabaseUrl}/storage/v1/object/public/${this.bucket}/${cleanFilename}`;
+    const filePath = this._cleanPath(filename);
+    return `${this.supabaseUrl}/storage/v1/object/public/${this.bucket}/${filePath}`;
   }
 
   /**
    * Generate temporary signed download URL
    */
   async signedUrl(filename) {
-    const cleanFilename = filename.startsWith('/') ? filename.slice(1) : filename;
-    const url = `${this.supabaseUrl}/storage/v1/object/sign/${this.bucket}/${encodeURIComponent(
-      cleanFilename
-    )}`;
+    const filePath = this._cleanPath(filename);
+    const url = `${this.supabaseUrl}/storage/v1/object/sign/${this.bucket}/${filePath}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -126,4 +126,3 @@ export default class SupabaseFilesAdapter {
     return `${this.supabaseUrl}/storage/v1${data.signedURL}`;
   }
 }
-
